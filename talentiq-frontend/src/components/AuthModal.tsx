@@ -44,17 +44,37 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
   }, [open, onClose]);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [showColdStartMessage, setShowColdStartMessage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (isLoading) {
+      timeout = setTimeout(() => {
+        setShowColdStartMessage(true);
+      }, 4000);
+    } else {
+      setShowColdStartMessage(false);
+    }
+    return () => clearTimeout(timeout);
+  }, [isLoading]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
+    setShowColdStartMessage(false);
 
     const form = event.currentTarget;
     const email = (form.elements.namedItem('email') as HTMLInputElement)?.value || '';
     const password = (form.elements.namedItem('password') as HTMLInputElement)?.value || '';
     const name = (form.elements.namedItem('name') as HTMLInputElement)?.value || '';
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       let data: { access_token: string; refresh_token: string; user: { id: string; name: string; email: string } };
@@ -131,8 +151,10 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
               <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                 {mode === 'signup' ? (
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <label className="mb-2 block text-sm font-medium text-white/70">Full Name</label>
+                    <label htmlFor="name" className="mb-2 block text-sm font-medium text-white/70">Full Name</label>
                     <input
+                      id="name"
+                      name="name"
                       type="text"
                       required
                       placeholder="Your name"
@@ -142,8 +164,10 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
                 ) : null}
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-white/70">Email</label>
+                  <label htmlFor="email" className="mb-2 block text-sm font-medium text-white/70">Email</label>
                   <input
+                    id="email"
+                    name="email"
                     type="email"
                     required
                     placeholder="you@company.com"
@@ -152,10 +176,13 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-white/70">Password</label>
+                  <label htmlFor="password" className="mb-2 block text-sm font-medium text-white/70">Password</label>
                   <input
+                    id="password"
+                    name="password"
                     type="password"
                     required
+                    minLength={8}
                     placeholder="••••••••"
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA]/50"
                   />
@@ -165,6 +192,12 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
                   <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
                     {error}
                   </div>
+                )}
+
+                {showColdStartMessage && !error && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 px-4 py-3 text-sm text-yellow-400">
+                    Waking up the server... This may take up to a minute on the free tier. Please wait!
+                  </motion.div>
                 )}
 
                 <motion.button
