@@ -35,7 +35,7 @@ const cardItemVariants = {
     transition: {
       duration: 0.5,
       delay: index * 0.08,
-      ease: 'easeOut',
+      ease: 'easeOut' as const,
     },
   }),
 };

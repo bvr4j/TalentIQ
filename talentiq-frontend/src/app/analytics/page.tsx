@@ -22,7 +22,7 @@ import {
 
 const pageVariants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.45, ease: 'easeOut' } },
+  visible: { opacity: 1, transition: { duration: 0.45, ease: 'easeOut' as const } },
 };
 
 const cardListVariants = {
@@ -38,7 +38,7 @@ const cardItemVariants = {
     transition: {
       duration: 0.45,
       delay: index * 0.05,
-      ease: 'easeOut',
+      ease: 'easeOut' as const,
     },
   }),
 };
@@ -129,7 +129,7 @@ const TalentAnalytics = () => {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={isReady ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-            transition={{ duration: 0.35, ease: 'easeOut' }}
+            transition={{ duration: 0.35, ease: 'easeOut' as const }}
             className="flex justify-between items-start gap-6"
           >
             <div>

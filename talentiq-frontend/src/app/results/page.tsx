@@ -21,7 +21,7 @@ import {
 
 const pageVariants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.45, ease: 'easeOut' } },
+  visible: { opacity: 1, transition: { duration: 0.45, ease: 'easeOut' as const } },
 };
 
 const listVariants = {
@@ -37,7 +37,7 @@ const itemVariants = {
     transition: {
       duration: 0.45,
       delay: index * 0.05,
-      ease: 'easeOut',
+      ease: 'easeOut' as const,
     },
   }),
 };
