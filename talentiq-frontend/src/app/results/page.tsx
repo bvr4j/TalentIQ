@@ -42,34 +42,50 @@ const itemVariants = {
   }),
 };
 
+type Candidate = { id: string; name: string | null; overall_score: number | null; recommendation: string | null; status: string };
+
 const CandidateResults = () => {
   const router = useRouter();
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const [uploadedResumes, setUploadedResumes] = useState<string[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedResumes = localStorage.getItem('talentiq:lastUploads');
+    let isMounted = true;
+    let pollTimer: NodeJS.Timeout;
 
-    if (storedResumes) {
+    const fetchCandidates = async () => {
       try {
-        const parsedResumes = JSON.parse(storedResumes) as unknown;
-
-        if (Array.isArray(parsedResumes)) {
+        const { apiListCandidates } = await import('@/lib/api');
+        const data = await apiListCandidates();
+        if (isMounted) {
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setUploadedResumes(parsedResumes.filter((resume): resume is string => typeof resume === 'string'));
+          setCandidates(data);
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setIsLoading(false);
         }
       } catch {
-        localStorage.removeItem('talentiq:lastUploads');
+        if (isMounted) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setIsLoading(false);
+        }
       }
-    }
+    };
+
+    fetchCandidates();
+    pollTimer = setInterval(fetchCandidates, 5000);
 
     const frame = window.requestAnimationFrame(() => setIsReady(true));
 
-    return () => window.cancelAnimationFrame(frame);
+    return () => {
+      isMounted = false;
+      clearInterval(pollTimer);
+      window.cancelAnimationFrame(frame);
+    };
   }, []);
 
-  const hasUploadedResumes = uploadedResumes.length > 0;
+  const hasUploadedResumes = candidates.length > 0;
 
   return (
     <motion.div
@@ -144,7 +160,7 @@ const CandidateResults = () => {
           </div>
 
           <AnimatePresence mode="wait">
-            {!isReady ? (
+            {!isReady || isLoading ? (
               <motion.div
                 key="loading"
                 initial={{ opacity: 0 }}
@@ -184,9 +200,9 @@ const CandidateResults = () => {
                 </div>
 
                 <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {uploadedResumes.map((resumeName, index) => (
+                  {candidates.map((candidate, index) => (
                     <motion.div
-                      key={`${resumeName}-${index}`}
+                      key={candidate.id}
                       custom={index}
                       variants={itemVariants}
                       whileHover={{ y: -8, scale: 1.01, boxShadow: '0 22px 45px rgba(96, 165, 250, 0.12)' }}
@@ -194,15 +210,29 @@ const CandidateResults = () => {
                     >
                       <div className="flex items-start justify-between gap-4 mb-4">
                         <div>
-                          <div className="text-lg font-bold truncate">{resumeName}</div>
-                          <div className="text-sm text-white/40">Awaiting analysis</div>
+                          <div className="text-lg font-bold truncate">{candidate.name || 'Unknown Candidate'}</div>
+                          <div className="text-sm text-white/40">
+                            {candidate.status === 'analyzed' ? 'Analysis complete' : 'Awaiting analysis'}
+                          </div>
                         </div>
-                        <span className="rounded-full border border-[#60A5FA]/20 bg-[#60A5FA]/10 px-3 py-1 text-xs font-bold text-[#60A5FA]">Queued</span>
+                        {candidate.status === 'analyzed' ? (
+                          <span className={`rounded-full border px-3 py-1 text-xs font-bold ${
+                            candidate.overall_score && candidate.overall_score >= 80 ? 'border-green-500/20 bg-green-500/10 text-green-400' :
+                            candidate.overall_score && candidate.overall_score >= 60 ? 'border-yellow-500/20 bg-yellow-500/10 text-yellow-400' :
+                            'border-red-500/20 bg-red-500/10 text-red-400'
+                          }`}>
+                            {candidate.overall_score}% Match
+                          </span>
+                        ) : (
+                          <span className="rounded-full border border-[#60A5FA]/20 bg-[#60A5FA]/10 px-3 py-1 text-xs font-bold text-[#60A5FA]">
+                            {candidate.status === 'pending' ? 'Queued' : candidate.status}
+                          </span>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-xs text-white/35 mb-4">
                         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-                          <div className="uppercase tracking-widest text-[10px] text-white/25 mb-1">Source</div>
-                          Resume upload
+                          <div className="uppercase tracking-widest text-[10px] text-white/25 mb-1">Recommendation</div>
+                          {candidate.recommendation || 'Pending'}
                         </div>
                         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
                           <div className="uppercase tracking-widest text-[10px] text-white/25 mb-1">Index</div>
@@ -210,11 +240,13 @@ const CandidateResults = () => {
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2 mb-5">
-                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] text-white/55">No fake candidate data</span>
-                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] text-white/55">Analysis pending</span>
+                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] text-white/55">Processed by AI</span>
+                        {candidate.status === 'analyzed' && (
+                          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] text-white/55">Ready for review</span>
+                        )}
                       </div>
-                      <Link href="/upload" className="inline-flex items-center gap-2 text-sm font-semibold text-[#60A5FA] hover:text-white transition-colors">
-                        Review upload
+                      <Link href={`/candidate/${candidate.id}`} className="inline-flex items-center gap-2 text-sm font-semibold text-[#60A5FA] hover:text-white transition-colors">
+                        View Full Report
                         <Search className="w-4 h-4" />
                       </Link>
                     </motion.div>
