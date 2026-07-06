@@ -43,11 +43,46 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
     };
   }, [open, onClose]);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    sessionStorage.setItem('isAuthenticated', 'true');
-    onClose();
-    router.push('/dashboard');
+    setIsLoading(true);
+    setError(null);
+
+    const form = event.currentTarget;
+    const email = (form.elements.namedItem('email') as HTMLInputElement)?.value || '';
+    const password = (form.elements.namedItem('password') as HTMLInputElement)?.value || '';
+    const name = (form.elements.namedItem('name') as HTMLInputElement)?.value || '';
+
+    try {
+      let data: { access_token: string; refresh_token: string; user: { id: string; name: string; email: string } };
+
+      if (mode === 'signup') {
+        const { apiRegister } = await import('@/lib/api');
+        data = await apiRegister(name, email, password);
+      } else {
+        const { apiLogin } = await import('@/lib/api');
+        data = await apiLogin(email, password);
+      }
+
+      // Store tokens
+      const { setToken } = await import('@/lib/api');
+      setToken(data.access_token);
+      localStorage.setItem('talentiq:refreshToken', data.refresh_token);
+
+      // Keep existing sessionStorage flag for page auth checks
+      sessionStorage.setItem('isAuthenticated', 'true');
+
+      onClose();
+      router.push('/dashboard');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Authentication failed. Please try again.';
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const tabButtonClass = (active: boolean) =>
@@ -126,13 +161,27 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
                   />
                 </div>
 
+                {error && (
+                  <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+                    {error}
+                  </div>
+                )}
+
                 <motion.button
                   type="submit"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full rounded-xl bg-[#60A5FA] px-4 py-3 font-semibold text-[#0E0E10] transition-all"
+                  disabled={isLoading}
+                  whileHover={{ scale: isLoading ? 1 : 1.02 }}
+                  whileTap={{ scale: isLoading ? 1 : 0.98 }}
+                  className="w-full rounded-xl bg-[#60A5FA] px-4 py-3 font-semibold text-[#0E0E10] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {mode === 'signin' ? 'Sign In' : 'Create Account'}
+                  {isLoading ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-[#0E0E10]/30 border-t-[#0E0E10] rounded-full animate-spin" />
+                      {mode === 'signin' ? 'Signing In...' : 'Creating Account...'}
+                    </>
+                  ) : (
+                    mode === 'signin' ? 'Sign In' : 'Create Account'
+                  )}
                 </motion.button>
               </form>
             </div>

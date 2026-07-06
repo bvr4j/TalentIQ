@@ -26,24 +26,36 @@ const NewJobPosting = () => {
     return Object.fromEntries(new FormData(formElement).entries());
   };
 
-  const saveDraft = () => {
+  const saveDraft = async () => {
     const draft = getDraftData();
-
-    if (!draft) {
-      return;
-    }
-
+    if (!draft) return;
     localStorage.setItem('talentiq:jobDraft', JSON.stringify(draft));
     router.push('/jobs');
   };
 
-  const createJob = () => {
+  const createJob = async () => {
     const draft = getDraftData();
-
     if (draft) {
-      localStorage.setItem('talentiq:jobDraft', JSON.stringify(draft));
+      try {
+        const { apiCreateJob } = await import('@/lib/api');
+        const created = await apiCreateJob({
+          title: String(draft.jobTitle || 'Untitled Job'),
+          department: String(draft.department || ''),
+          description: String(draft.description || ''),
+          required_skills: String(draft.requiredSkills || ''),
+          preferred_skills: String(draft.preferredSkills || ''),
+          experience_level: String(draft.experienceLevel || ''),
+          status: 'active',
+        });
+        // Store the real job ID for the upload page
+        if (created?.id) {
+          localStorage.setItem('talentiq:currentJobId', created.id);
+        }
+      } catch {
+        // Fallback: save locally and continue
+        localStorage.setItem('talentiq:jobDraft', JSON.stringify(draft));
+      }
     }
-
     router.push('/upload');
   };
 

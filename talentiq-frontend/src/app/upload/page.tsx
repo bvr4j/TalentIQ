@@ -31,13 +31,28 @@ const ResumeUpload = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(event.target.files ?? []).map((file) => file.name);
+  const handleFilesSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files ?? []);
+    if (selectedFiles.length === 0) return;
 
-    if (selectedFiles.length > 0) {
-      localStorage.setItem('talentiq:lastUploads', JSON.stringify(selectedFiles));
-      router.push('/results');
+    // Store filenames locally for the results page to display
+    const fileNames = selectedFiles.map((f) => f.name);
+    localStorage.setItem('talentiq:lastUploads', JSON.stringify(fileNames));
+
+    // Get job ID if available
+    const jobId = localStorage.getItem('talentiq:currentJobId') || undefined;
+
+    try {
+      const { apiUploadResume } = await import('@/lib/api');
+      // Upload each file — fire and don't block navigation
+      selectedFiles.forEach((file) => {
+        apiUploadResume(file, jobId).catch(() => {/* silent — results page will show status */});
+      });
+    } catch {
+      // If API not available, still redirect so UI works
     }
+
+    router.push('/results');
   };
 
   return (
