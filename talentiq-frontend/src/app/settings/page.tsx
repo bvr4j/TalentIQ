@@ -96,45 +96,65 @@ const SettingsPage = () => {
       return;
     }
 
-    const storedSettings = localStorage.getItem(STORAGE_KEY);
-    const storedUser = localStorage.getItem('talentiq:user');
+    const loadSettingsAndUser = async () => {
+      const storedSettings = localStorage.getItem(STORAGE_KEY);
+      const storedUser = localStorage.getItem('talentiq:user');
 
-    let initialSettings = defaultSettings;
+      let initialSettings = defaultSettings;
 
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        initialSettings = {
-          ...initialSettings,
-          profile: {
-            ...initialSettings.profile,
-            name: parsedUser.name || initialSettings.profile.name,
-            email: parsedUser.email || initialSettings.profile.email,
-          }
-        };
-      } catch (e) {}
-    }
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          initialSettings = {
+            ...initialSettings,
+            profile: {
+              ...initialSettings.profile,
+              name: parsedUser.name || initialSettings.profile.name,
+              email: parsedUser.email || initialSettings.profile.email,
+            }
+          };
+        } catch (e) {}
+      } else {
+        // Fallback to fetch if not in local storage
+        try {
+          const { apiGetMe } = await import('@/lib/api');
+          const me = await apiGetMe();
+          initialSettings = {
+            ...initialSettings,
+            profile: {
+              ...initialSettings.profile,
+              name: me.name || initialSettings.profile.name,
+              email: me.email || initialSettings.profile.email,
+              company: me.company || initialSettings.profile.company,
+            }
+          };
+          localStorage.setItem('talentiq:user', JSON.stringify(me));
+        } catch (e) {}
+      }
 
-    if (storedSettings) {
-      try {
-        const parsedSettings = JSON.parse(storedSettings) as Partial<SettingsState>;
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setSettings({
-          profile: { ...initialSettings.profile, ...parsedSettings.profile },
-          appearance: { ...initialSettings.appearance, ...parsedSettings.appearance },
-          preferences: { ...initialSettings.preferences, ...parsedSettings.preferences },
-          notifications: { ...initialSettings.notifications, ...parsedSettings.notifications },
-        });
-      } catch {
+      if (storedSettings) {
+        try {
+          const parsedSettings = JSON.parse(storedSettings) as Partial<SettingsState>;
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setSettings({
+            profile: { ...initialSettings.profile, ...parsedSettings.profile },
+            appearance: { ...initialSettings.appearance, ...parsedSettings.appearance },
+            preferences: { ...initialSettings.preferences, ...parsedSettings.preferences },
+            notifications: { ...initialSettings.notifications, ...parsedSettings.notifications },
+          });
+        } catch {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setSettings(initialSettings);
+        }
+      } else {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setSettings(initialSettings);
       }
-    } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSettings(initialSettings);
-    }
 
-    setIsCheckingAuth(false);
+      setIsCheckingAuth(false);
+    };
+
+    loadSettingsAndUser();
   }, [router]);
 
   const saveSettings = () => {

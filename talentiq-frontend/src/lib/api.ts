@@ -71,6 +71,12 @@ export async function apiLogin(email: string, password: string) {
   );
 }
 
+export async function apiGetMe() {
+  return request<{ id: string; name: string; email: string; company: string | null }>(
+    "/api/auth/me"
+  );
+}
+
 // ── Jobs ─────────────────────────────────────────────────────────────────────
 
 export async function apiCreateJob(data: Record<string, string | undefined>) {
