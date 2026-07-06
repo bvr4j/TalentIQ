@@ -97,20 +97,41 @@ const SettingsPage = () => {
     }
 
     const storedSettings = localStorage.getItem(STORAGE_KEY);
+    const storedUser = localStorage.getItem('talentiq:user');
+
+    let initialSettings = defaultSettings;
+
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        initialSettings = {
+          ...initialSettings,
+          profile: {
+            ...initialSettings.profile,
+            name: parsedUser.name || initialSettings.profile.name,
+            email: parsedUser.email || initialSettings.profile.email,
+          }
+        };
+      } catch (e) {}
+    }
 
     if (storedSettings) {
       try {
         const parsedSettings = JSON.parse(storedSettings) as Partial<SettingsState>;
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setSettings({
-          profile: { ...defaultSettings.profile, ...parsedSettings.profile },
-          appearance: { ...defaultSettings.appearance, ...parsedSettings.appearance },
-          preferences: { ...defaultSettings.preferences, ...parsedSettings.preferences },
-          notifications: { ...defaultSettings.notifications, ...parsedSettings.notifications },
+          profile: { ...initialSettings.profile, ...parsedSettings.profile },
+          appearance: { ...initialSettings.appearance, ...parsedSettings.appearance },
+          preferences: { ...initialSettings.preferences, ...parsedSettings.preferences },
+          notifications: { ...initialSettings.notifications, ...parsedSettings.notifications },
         });
       } catch {
-        localStorage.removeItem(STORAGE_KEY);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setSettings(initialSettings);
       }
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSettings(initialSettings);
     }
 
     setIsCheckingAuth(false);

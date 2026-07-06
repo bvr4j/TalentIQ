@@ -94,6 +94,10 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
 
       // Keep existing sessionStorage flag for page auth checks
       sessionStorage.setItem('isAuthenticated', 'true');
+      
+      if (data.user) {
+        localStorage.setItem('talentiq:user', JSON.stringify(data.user));
+      }
 
       onClose();
       router.push('/dashboard');
