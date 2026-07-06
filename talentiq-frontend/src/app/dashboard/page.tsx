@@ -52,6 +52,7 @@ const Dashboard = () => {
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsCheckingAuth(false);
   }, [router]);
 
@@ -127,7 +128,7 @@ const Dashboard = () => {
         </header>
 
         <div className="p-8 max-w-7xl mx-auto space-y-8">
-          <p className="text-white/40 -mt-4">Here's what's happening across your requisitions today.</p>
+          <p className="text-white/40 -mt-4">Here&apos;s what&apos;s happening across your requisitions today.</p>
 
           {/* Stats Row */}
           <motion.div variants={cardContainerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-4 gap-4">

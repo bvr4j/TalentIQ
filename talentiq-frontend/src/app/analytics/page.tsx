@@ -56,6 +56,7 @@ const TalentAnalytics = () => {
         const parsedResumes = JSON.parse(storedResumes) as unknown;
 
         if (Array.isArray(parsedResumes)) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setUploadedResumes(parsedResumes.filter((resume): resume is string => typeof resume === 'string'));
         }
       } catch {

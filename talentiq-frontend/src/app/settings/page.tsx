@@ -101,6 +101,7 @@ const SettingsPage = () => {
     if (storedSettings) {
       try {
         const parsedSettings = JSON.parse(storedSettings) as Partial<SettingsState>;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSettings({
           profile: { ...defaultSettings.profile, ...parsedSettings.profile },
           appearance: { ...defaultSettings.appearance, ...parsedSettings.appearance },
