@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -10,11 +10,13 @@ import {
   Plus, 
   Search,
   Save,
-  Rocket
+  Rocket,
+  Loader2
 } from 'lucide-react';
 
 const NewJobPosting = () => {
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getDraftData = () => {
     const formElement = document.getElementById('job-form') as HTMLFormElement | null;
@@ -36,6 +38,7 @@ const NewJobPosting = () => {
   const createJob = async () => {
     const draft = getDraftData();
     if (draft) {
+      setIsSubmitting(true);
       try {
         const { apiCreateJob } = await import('@/lib/api');
         const created = await apiCreateJob({
@@ -51,12 +54,17 @@ const NewJobPosting = () => {
         if (created?.id) {
           localStorage.setItem('talentiq:currentJobId', created.id);
         }
-      } catch {
+      } catch (error) {
+        console.error("Failed to create job:", error);
         // Fallback: save locally and continue
         localStorage.setItem('talentiq:jobDraft', JSON.stringify(draft));
+      } finally {
+        setIsSubmitting(false);
+        router.push('/upload');
       }
+    } else {
+      router.push('/upload');
     }
-    router.push('/upload');
   };
 
   const cancelJob = () => {
@@ -82,9 +90,25 @@ const NewJobPosting = () => {
           <button type="button" onClick={saveDraft} className="px-4 py-2 text-sm font-semibold hover:bg-white/5 rounded-lg transition-colors border border-white/10">
             Save Draft
           </button>
-          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} type="button" onClick={createJob} className="px-4 py-2 bg-[#3b82f6] hover:bg-[#2563eb] text-white text-sm font-bold rounded-lg transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Create Job
+          <motion.button 
+            whileHover={{ scale: 1.03 }} 
+            whileTap={{ scale: 0.98 }} 
+            type="button" 
+            onClick={createJob} 
+            disabled={isSubmitting}
+            className={`px-4 py-2 ${isSubmitting ? 'bg-[#3b82f6]/50 cursor-not-allowed' : 'bg-[#3b82f6] hover:bg-[#2563eb] shadow-blue-500/20 shadow-lg'} text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2`}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                Create Job
+              </>
+            )}
           </motion.button>
         </div>
       </header>
@@ -204,8 +228,22 @@ const NewJobPosting = () => {
       {/* Form Actions Footer (Mobile/Tablet accessibility) */}
       <div className="fixed bottom-0 w-full border-t border-white/5 p-4 md:hidden bg-[#10131a]/80 backdrop-blur-md">
          <div className="flex gap-3">
-           <button type="button" onClick={cancelJob} className="flex-1 py-3 bg-white/5 rounded-xl text-sm font-bold">Cancel</button>
-           <button type="button" onClick={createJob} className="flex-1 py-3 bg-[#3b82f6] rounded-xl text-sm font-bold">Create Job</button>
+           <button type="button" onClick={cancelJob} className="flex-1 py-3 bg-white/5 rounded-xl text-sm font-bold" disabled={isSubmitting}>Cancel</button>
+           <button 
+             type="button" 
+             onClick={createJob} 
+             disabled={isSubmitting}
+             className={`flex-1 py-3 ${isSubmitting ? 'bg-[#3b82f6]/50' : 'bg-[#3b82f6]'} rounded-xl text-sm font-bold flex items-center justify-center gap-2`}
+           >
+             {isSubmitting ? (
+               <>
+                 <Loader2 className="w-4 h-4 animate-spin" />
+                 Creating...
+               </>
+             ) : (
+               'Create Job'
+             )}
+           </button>
          </div>
       </div>
     </div>
