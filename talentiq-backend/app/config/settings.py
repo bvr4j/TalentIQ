@@ -4,7 +4,9 @@ Loaded from environment variables / .env file via pydantic-settings.
 """
 
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from functools import lru_cache
+from typing import Union, Any
 
 
 class Settings(BaseSettings):
@@ -23,10 +25,25 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     # ── CORS ──────────────────────────────────────────────────────────────────
-    ALLOWED_ORIGINS: list[str] = [
+    ALLOWED_ORIGINS: Union[str, list[str]] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ]
+
+    @field_validator("ALLOWED_ORIGINS")
+    @classmethod
+    def assemble_cors_origins(cls, v: Any) -> list[str]:
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",") if i.strip()]
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str) and v.startswith("["):
+            import json
+            try:
+                return json.loads(v)
+            except Exception:
+                return [v]
+        return v
 
     # ── Upload ───────────────────────────────────────────────────────────────
     UPLOAD_DIR: str = "uploads"
